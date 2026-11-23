@@ -6,10 +6,7 @@
 ## 目录结构
 
 ```
-IOS App/Latein lernen/
-├── Resources/                      ← 课本照片和明文词库（不进仓库）
-│   └── latein_lektionen_1-11.json
-└── app/                            ← 本项目 = Git 仓库
+ app/                            ← 本项目 = Git 仓库
     ├── public/vocab.enc.json       ← 加密后的词库（运行 npm run encrypt 生成，要提交）
     ├── scripts/encrypt-vocab.mjs   ← 加密脚本
     ├── src/lib/                    ← 逻辑：词形、重音、判分、间隔复习、加密
@@ -19,30 +16,7 @@ IOS App/Latein lernen/
 
 ## 第一次发布
 
-需要 Node.js 22 或更高版本（`brew install node`）。
-
-```bash
-cd "~/Documents/IOS App/Latein lernen/app"
-npm install
-npm run encrypt          # 设定家庭密码（至少 6 位），生成 public/vocab.enc.json
-npm test                 # 应该显示 24 passed
-npm run dev              # 本地预览：http://localhost:5173
-```
-
-上传到 GitHub（先在 GitHub 网站上新建一个**空的公开仓库**，例如 `latein-lernen`）：
-
-```bash
-git init -b main
-git add .
-git commit -m "Latein lernen: erste Version"
-git remote add origin https://github.com/<用户名>/latein-lernen.git
-git push -u origin main
-```
-
-在 GitHub 仓库里打开 **Settings → Pages → Build and deployment → Source: GitHub Actions**。
-之后每次 `git push` 都会自动构建和部署，地址是 `https://<用户名>.github.io/latein-lernen/`。
-
-> 构建流程会检查仓库里有没有明文词库。万一不小心提交了明文词库，部署会直接失败。
+https://leizhou-dev.github.io/latein-lernen/
 
 ## 安装到 iPad
 
@@ -51,13 +25,6 @@ git push -u origin main
 3. **从主屏幕图标**打开 App，输入一次家庭密码，以后不用再输。
 
 注意：在 Safari 里直接练习的进度不会带到主屏幕 App 里，所以要先装好，再从主屏幕开始用。
-
-## 更新
-
-- **改代码**：直接 `git push`。iPad 下次联网打开 App 时会自动更新（只在主页、没有正在练习时才应用更新）。
-- **改词库**：编辑 `Resources/latein_lektionen_1-11.json`，运行 `npm run encrypt`（输入同一个密码），然后提交并推送 `public/vocab.enc.json`。
-  只要密码不变，iPad 会自动解密新词库，不用重新输入密码。
-- **换密码**：运行 `npm run encrypt -- --new-salt`。iPad 上会出现提示，要求输入新密码。
 
 ## 学习进度与备份
 
