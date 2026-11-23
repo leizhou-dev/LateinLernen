@@ -1,0 +1,6 @@
+node_modules
+dist
+# Klartext-Wortschatz NIE ins Repository!
+*.plain.json
+private/
+.DS_Store
