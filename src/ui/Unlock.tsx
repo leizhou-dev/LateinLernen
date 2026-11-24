@@ -26,6 +26,7 @@ export function Unlock() {
 
   return (
     <div class="unlock">
+      <div class="unlock-bg" />
       <div class="unlock-card">
         <img src="icons/icon-192.png" width={96} height={96} alt="" />
         <h1>Latein lernen</h1>
@@ -46,7 +47,7 @@ export function Unlock() {
         )}
         {!standalone && (
           <p class="muted small install-hint">
-            Tipp: In Safari auf <b>Teilen</b> → <b>Zum Home-Bildschirm</b> tippen und die App von dort öffnen.
+            Tipp: In Safari auf <b>Teilen</b> und dann <b>Zum Home-Bildschirm</b> tippen und die App von dort öffnen.
             Erst dann funktioniert sie offline und der Fortschritt bleibt sicher gespeichert.
           </p>
         )}

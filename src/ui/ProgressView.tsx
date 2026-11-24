@@ -9,6 +9,8 @@ import type { AnswerMode } from '../lib/types';
 import { LatinText } from './Latin';
 import { LevelBar } from './Vocab';
 import { MODE_LABEL, DIR_LABEL, Segmented, type TrainerStart } from './Trainer';
+import { PageHeader, Group, Row, Toggle } from './Chrome';
+import { Icon, IconTile } from './Icons';
 
 export function ProgressView({ onStart }: { onStart: (s: TrainerStart) => void }) {
   const app = useApp();
@@ -38,7 +40,7 @@ export function ProgressView({ onStart }: { onStart: (s: TrainerStart) => void }
     try {
       if (navigator.canShare?.({ files: [file] })) {
         await navigator.share({ files: [file], title: 'Latein-Sicherung' });
-        setMsg('✓ Sicherung erstellt.');
+        setMsg('Sicherung erstellt.');
         return;
       }
     } catch (e) {
@@ -47,7 +49,7 @@ export function ProgressView({ onStart }: { onStart: (s: TrainerStart) => void }
     const a = document.createElement('a');
     a.href = URL.createObjectURL(file); a.download = name; a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-    setMsg('✓ Sicherung heruntergeladen.');
+    setMsg('Sicherung heruntergeladen.');
   }
 
   async function importBackup(f: File) {
@@ -55,106 +57,101 @@ export function ProgressView({ onStart }: { onStart: (s: TrainerStart) => void }
       const b = JSON.parse(await f.text()) as Backup;
       if (!confirm(`Sicherung vom ${new Date(b.exported).toLocaleString('de-DE')} wiederherstellen? Der aktuelle Fortschritt wird ersetzt.`)) return;
       await restoreBackup(b);
-      setMsg('✓ Sicherung wiederhergestellt.');
+      setMsg('Sicherung wiederhergestellt.');
     } catch (e) {
-      setMsg('✗ ' + (e as Error).message);
+      setMsg('Fehler: ' + (e as Error).message);
     }
   }
 
   return (
     <div class="screen">
-      <header class="bar"><span /><h1>Fortschritt</h1><span /></header>
-      <div class="panel">
-        <div class="stat-grid">
-          <div class="stat"><span class="stat-n">🔥 {streak(stats)}</span><span>Tage in Folge</span></div>
-          <div class="stat"><span class="stat-n">{seen}/{words.length}</span><span>Wörter geübt</span></div>
-          <div class="stat"><span class="stat-n">{mastered}</span><span>Wörter sicher</span></div>
-          <div class="stat"><span class="stat-n">{due}</span><span>heute fällig</span></div>
-        </div>
+      <PageHeader title="Fortschritt" />
 
-        <h3>Die letzten 14 Tage</h3>
+      <div class="stat-grid">
+        <div class="stat"><span class="stat-n"><Icon name="flame" size={24} weight={2} />{streak(stats)}</span><span>Tage in Folge</span></div>
+        <div class="stat"><span class="stat-n">{seen}<span class="muted" style={{ fontSize: '17px' }}>/{words.length}</span></span><span>Wörter geübt</span></div>
+        <div class="stat"><span class="stat-n">{mastered}</span><span>Wörter sicher</span></div>
+        <div class="stat"><span class="stat-n">{due}</span><span>heute fällig</span></div>
+      </div>
+
+      <Group header="Die letzten 14 Tage">
         <div class="daychart">
           {days.map((d) => (
             <div class="day" key={d.key} title={`${d.key}: ${d.n}`}>
-              <div class="day-bar" style={{ height: `${(d.n / maxDay) * 100}%` }} />
+              <div class={'day-bar' + (d.n ? '' : ' zero')} style={{ height: `${Math.max(3, (d.n / maxDay) * 100)}%` }} />
               <span class="small muted">{d.label}</span>
             </div>
           ))}
         </div>
+      </Group>
 
-        <h3>Lernstand pro Lektion</h3>
-        {app.lessons.map((l) => (
-          <div class="lesson-progress" key={l.number}>
-            <span class="lp-num">L{l.number}</span>
-            <LevelBar levels={l.words.map((w) => wordLevel(app.progress, w))} />
-          </div>
-        ))}
-        <p class="muted small">Formen-Übungen: {stats.formsRight} richtig, {stats.formsWrong} falsch</p>
-
-        {problems.length > 0 && (
-          <>
-            <h3>Problemwörter</h3>
-            <div class="wordlist compact">
-              {problems.slice(0, 15).map(({ w, d, p }) => (
-                <div class="wrow" key={w.id + d}>
-                  <div class="w-lat"><LatinText text={latinDisplay(w)} /></div>
-                  <div class="w-de">{germanDisplay(w, 3)}</div>
-                  <div class="muted small">{d === 'ld' ? 'La→De' : 'De→La'} · {p!.wrong}× falsch</div>
-                </div>
-              ))}
+      <Group header="Lernstand pro Lektion" footer={`Formen-Übungen: ${stats.formsRight} richtig, ${stats.formsWrong} falsch`}>
+        {app.lessons.map((l) => {
+          const lv = l.words.map((w) => wordLevel(app.progress, w));
+          return (
+            <div class="lesson-progress" key={l.number}>
+              <span class="lp-num">L{l.number}</span>
+              <LevelBar levels={lv} />
+              <span class="lp-n">{lv.filter((x) => x >= MAX_LEVEL).length}/{lv.length}</span>
             </div>
-            <button class="secondary" onClick={() => onStart({ kind: 'problem', lessons: app.lessons.map((l) => l.number) })}>Problemwörter üben</button>
-          </>
-        )}
+          );
+        })}
+      </Group>
 
-        <h2 class="section">Einstellungen</h2>
-        <div class="setting">
-          <span>Bis zu welcher Lektion seid ihr in der Schule?</span>
-          <select value={settings.currentLesson} onChange={(e) => setSettings({ currentLesson: Number((e.target as HTMLSelectElement).value) })}>
-            {app.lessons.map((l) => <option key={l.number} value={l.number}>Lektion {l.number}</option>)}
-          </select>
+      {problems.length > 0 && (
+        <Group header="Problemwörter">
+          {problems.slice(0, 12).map(({ w, d, p }) => (
+            <Row key={w.id + d} title={<LatinText text={latinDisplay(w)} />} subtitle={germanDisplay(w, 3)}
+              detail={<span class="small">{d === 'ld' ? 'LA→DE' : 'DE→LA'} · {p!.wrong}× falsch</span>} />
+          ))}
+          <Row class="row-accent" icon={<IconTile name="target" color="var(--red)" size={30} />} title="Problemwörter üben" chevron
+            onClick={() => onStart({ kind: 'problem', lessons: app.lessons.map((l) => l.number) })} />
+        </Group>
+      )}
+
+      <Group header="Einstellungen">
+        <Row icon={<IconTile name="graduation" color="var(--blue)" size={30} />} title="Stand in der Schule">
+        </Row>
+        <div class="seg-row" style={{ paddingTop: 0 }}>
+          <Segmented
+            value={String(settings.currentLesson)}
+            options={app.lessons.map((l) => [String(l.number), String(l.number)] as [string, string])}
+            onChange={(v) => setSettings({ currentLesson: Number(v) })}
+          />
         </div>
-        <div class="setting col">
-          <span>Antworten mit</span>
+        <Row icon={<IconTile name="pencil" color="var(--orange)" size={30} />} title="Antworten mit" />
+        <div class="seg-row" style={{ paddingTop: 0 }}>
           <Segmented<AnswerMode>
             value={settings.answerMode}
             options={(['choice', 'handwriting', 'keyboard', 'card'] as AnswerMode[]).map((m) => [m, MODE_LABEL[m]])}
             onChange={(m) => setSettings({ answerMode: m })}
           />
         </div>
-        <div class="setting col">
-          <span>Richtung</span>
+        <Row icon={<IconTile name="arrows" color="var(--indigo)" size={30} />} title="Richtung" />
+        <div class="seg-row" style={{ paddingTop: 0 }}>
           <Segmented value={settings.direction} options={[['ld', DIR_LABEL.ld], ['dl', DIR_LABEL.dl], ['mixed', DIR_LABEL.mixed]]} onChange={(d) => setSettings({ direction: d })} />
         </div>
-        <label class="setting">
-          <span>Betonung markieren</span>
-          <input type="checkbox" class="switch" checked={settings.showStress} onChange={(e) => setSettings({ showStress: (e.target as HTMLInputElement).checked })} />
-        </label>
-        <label class="setting">
-          <span>Vorlesen (italienische Stimme, ungefähr)</span>
-          <input type="checkbox" class="switch" checked={settings.speech} onChange={(e) => setSettings({ speech: (e.target as HTMLInputElement).checked })} />
-        </label>
+        <Row icon={<IconTile name="sparkles" color="var(--accent)" size={30} />} title="Betonung markieren"
+          detail={<Toggle label="Betonung markieren" checked={settings.showStress} onChange={(v) => setSettings({ showStress: v })} />} />
+        <Row icon={<IconTile name="speaker" color="var(--green)" size={30} />} title="Vorlesen" subtitle="italienische Stimme, ungefähre Aussprache"
+          detail={<Toggle label="Vorlesen" checked={settings.speech} onChange={(v) => setSettings({ speech: v })} />} />
+      </Group>
 
-        <h2 class="section">Sicherung</h2>
-        <p class="muted small">Der Fortschritt ist nur auf diesem iPad gespeichert. Mach ab und zu eine Sicherung (z. B. in „Dateien“ / iCloud).</p>
-        <div class="two">
-          <button class="secondary" onClick={exportBackup}>⬆︎ Sicherung exportieren</button>
-          <button class="secondary" onClick={() => fileRef.current?.click()}>⬇︎ Sicherung laden</button>
-        </div>
-        <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={(e) => {
-          const f = (e.target as HTMLInputElement).files?.[0]; if (f) importBackup(f); (e.target as HTMLInputElement).value = '';
+      <Group header="Sicherung" footer="Der Fortschritt ist nur auf diesem iPad gespeichert. Mach ab und zu eine Sicherung, z. B. in „Dateien“ oder iCloud.">
+        <Row icon={<IconTile name="share" color="var(--blue)" size={30} />} title="Sicherung exportieren" chevron onClick={exportBackup} />
+        <Row icon={<IconTile name="download" color="var(--teal)" size={30} />} title="Sicherung laden" chevron onClick={() => fileRef.current?.click()} />
+      </Group>
+      <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={(e) => {
+        const f = (e.target as HTMLInputElement).files?.[0]; if (f) importBackup(f); (e.target as HTMLInputElement).value = '';
+      }} />
+      {msg && <p class="group-footer">{msg}</p>}
+
+      <Group header="Sonstiges" footer={`${app.vocab?.meta.title ?? ''} · ${words.length} Wörter${app.contentId ? ` · ${app.contentId.slice(0, 8)}` : ''}`}>
+        <Row icon={<IconTile name="key" color="var(--gray)" size={30} />} title="Passwort neu eingeben" chevron onClick={() => showUnlock()} />
+        <Row class="row-destructive" icon={<IconTile name="trash" color="var(--red)" size={30} />} title="Fortschritt zurücksetzen" onClick={async () => {
+          if (confirm('Wirklich den gesamten Lernfortschritt löschen? Das kann nicht rückgängig gemacht werden.')) { await resetProgress(); setMsg('Fortschritt gelöscht.'); }
         }} />
-        {msg && <p class="small">{msg}</p>}
-
-        <h2 class="section">Sonstiges</h2>
-        <p class="muted small">Wortschatz: {app.vocab?.meta.title} · {words.length} Wörter{app.contentId ? ` · ${app.contentId.slice(0, 8)}` : ''}</p>
-        <div class="two">
-          <button class="secondary" onClick={() => showUnlock()}>🔑 Passwort neu eingeben</button>
-          <button class="danger" onClick={async () => {
-            if (confirm('Wirklich den gesamten Lernfortschritt löschen? Das kann nicht rückgängig gemacht werden.')) { await resetProgress(); setMsg('Fortschritt gelöscht.'); }
-          }}>Fortschritt zurücksetzen</button>
-        </div>
-      </div>
+      </Group>
     </div>
   );
 }

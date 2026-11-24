@@ -1,6 +1,8 @@
 import { useApp, streak, today, showUnlock } from '../lib/store';
 import { countDue, countNew, countProblems } from '../lib/session';
 import type { TrainerStart } from './Trainer';
+import { PageHeader } from './Chrome';
+import { Icon, IconTile } from './Icons';
 
 export function Home({ onStart, onTab }: { onStart: (s: TrainerStart) => void; onTab: (t: string) => void }) {
   const app = useApp();
@@ -14,64 +16,75 @@ export function Home({ onStart, onTab }: { onStart: (s: TrainerStart) => void; o
   const todayCount = app.stats.days[today()] ?? 0;
   const hour = new Date().getHours();
   const greet = hour < 11 ? 'Salvē! Guten Morgen' : hour < 18 ? 'Salvē!' : 'Salvē! Guten Abend';
+  const date = new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' });
 
   return (
     <div class="screen">
-      <header class="hero">
-        <div>
-          <h1 class="la">{greet}</h1>
-          <p class="muted">{new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
-        </div>
-        <div class="streak" title="Tage in Folge geübt">
-          <span class="flame">🔥</span>
-          <span class="streak-n">{st}</span>
-          <span class="small">{st === 1 ? 'Tag' : 'Tage'}</span>
-        </div>
-      </header>
+      <PageHeader
+        title={greet}
+        titleClass="la"
+        subtitle={date}
+        trailing={
+          <span class="streak-pill" title="Tage in Folge geübt">
+            <Icon name="flame" size={20} weight={2} /> {st} {st === 1 ? 'Tag' : 'Tage'}
+          </span>
+        }
+      />
 
       {app.newVocabNeedsPassword && (
-        <div class="banner" onClick={() => showUnlock()}>🔑 Es gibt neue Vokabeln. Tippe hier und gib das Familien-Passwort ein.</div>
+        <button class="banner" onClick={() => showUnlock()}>
+          <Icon name="key" />
+          <span>Es gibt neue Vokabeln. Tippe hier und gib das Familien-Passwort ein.</span>
+        </button>
       )}
 
-      <div class="panel">
-        <button class={'action-card due' + (due ? '' : ' done')} disabled={!due} onClick={() => onStart({ kind: 'due', lessons })}>
-          <span class="ac-icon">🔁</span>
-          <span class="ac-text">
-            <span class="ac-title">Wiederholen</span>
-            <span class="ac-sub">{due ? due === 1 ? '1 Karte ist heute fällig' : `${due} Karten sind heute fällig` : 'Alles wiederholt – optimē! 🎉'}</span>
-          </span>
-          {due > 0 && <span class="ac-badge">{due}</span>}
+      <div class="widget-grid">
+        <button class={'widget hero-w' + (due ? '' : ' done')} disabled={!due} onClick={() => onStart({ kind: 'due', lessons })}>
+          <div class="widget-top">
+            <IconTile name={due ? 'repeat' : 'checkCircle'} color="transparent" size={44} />
+            {due > 0 && <span class="widget-count">{due}</span>}
+          </div>
+          <div>
+            <div class="widget-title">Wiederholen</div>
+            <div class="widget-sub">{due ? (due === 1 ? '1 Karte ist heute fällig' : `${due} Karten sind heute fällig`) : 'Alles wiederholt – optimē!'}</div>
+          </div>
+          {due > 0 && <span class="widget-cta">Jetzt starten <Icon name="chevronRight" size={16} weight={2.4} /></span>}
         </button>
 
-        <button class="action-card new" disabled={!fresh} onClick={() => onStart({ kind: 'new', lessons })}>
-          <span class="ac-icon">✨</span>
-          <span class="ac-text">
-            <span class="ac-title">Neue Wörter lernen</span>
-            <span class="ac-sub">{fresh ? `noch ${fresh} ${fresh === 1 ? 'Karte' : 'Karten'} nie geübt` : 'Du hast alle Wörter schon einmal geübt.'}</span>
-          </span>
+        <button class="widget" disabled={!fresh} onClick={() => onStart({ kind: 'new', lessons })}>
+          <div class="widget-top"><IconTile name="sparkles" color="var(--indigo)" /></div>
+          <div>
+            <div class="widget-title">Neue Wörter</div>
+            <div class="widget-sub">{fresh ? `noch ${fresh} ${fresh === 1 ? 'Karte' : 'Karten'} nie geübt` : 'Alle Wörter schon einmal geübt.'}</div>
+          </div>
         </button>
 
-        {problems > 0 && (
-          <button class="action-card problem" onClick={() => onStart({ kind: 'problem', lessons })}>
-            <span class="ac-icon">🎯</span>
-            <span class="ac-text">
-              <span class="ac-title">Problemwörter</span>
-              <span class="ac-sub">{problems} Karten, die öfter falsch waren</span>
-            </span>
-          </button>
-        )}
+        <button class="widget" disabled={!problems} onClick={() => onStart({ kind: 'problem', lessons })}>
+          <div class="widget-top"><IconTile name="target" color="var(--red)" />{problems > 0 && <span class="widget-count" style={{ fontSize: '30px' }}>{problems}</span>}</div>
+          <div>
+            <div class="widget-title">Problemwörter</div>
+            <div class="widget-sub">{problems ? 'Karten, die öfter falsch waren' : 'Zurzeit keine – super!'}</div>
+          </div>
+        </button>
 
-        <div class="two">
-          <button class="action-card small" onClick={() => onTab('vocab')}>
-            <span class="ac-icon">📚</span><span class="ac-text"><span class="ac-title">Lektion wählen</span></span>
-          </button>
-          <button class="action-card small" onClick={() => onTab('forms')}>
-            <span class="ac-icon">🛠️</span><span class="ac-text"><span class="ac-title">Formen üben</span></span>
-          </button>
-        </div>
+        <button class="widget" onClick={() => onTab('vocab')}>
+          <div class="widget-top"><IconTile name="books" color="var(--blue)" /></div>
+          <div>
+            <div class="widget-title">Lektion wählen</div>
+            <div class="widget-sub">Wörter ansehen und gezielt üben</div>
+          </div>
+        </button>
 
-        <p class="muted center small">Heute geübt: {todayCount} Aufgaben · Tipp: etwa 15 Minuten am Tag reichen!</p>
+        <button class="widget" onClick={() => onTab('forms')}>
+          <div class="widget-top"><IconTile name="table" color="var(--teal)" /></div>
+          <div>
+            <div class="widget-title">Formen üben</div>
+            <div class="widget-sub">Deklinieren, konjugieren, bestimmen</div>
+          </div>
+        </button>
       </div>
+
+      <p class="home-note">Heute geübt: {todayCount} Aufgaben · Etwa 15 Minuten am Tag reichen!</p>
     </div>
   );
 }

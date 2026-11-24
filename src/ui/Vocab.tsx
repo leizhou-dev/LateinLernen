@@ -4,6 +4,8 @@ import { cardKey, wordLevel, MAX_LEVEL } from '../lib/srs';
 import { latinDisplay, germanDisplay } from '../lib/check';
 import { LatinText, SpeakButton, LevelDots } from './Latin';
 import type { TrainerStart } from './Trainer';
+import { PageHeader, GlassButton } from './Chrome';
+import { Icon } from './Icons';
 
 export function LevelBar({ levels }: { levels: number[] }) {
   const n = levels.length || 1;
@@ -25,13 +27,13 @@ export function Vocab({ onStart }: { onStart: (s: TrainerStart) => void }) {
     const reviewWords = L.review.map((id) => app.words.find((w) => w.id === id)!).filter(Boolean);
     return (
       <div class="screen">
-        <header class="bar">
-          <button class="link" onClick={() => setOpen(null)}>‹ Lektionen</button>
-          <h1>Lektion {open}</h1>
-          <button class="primary" onClick={() => onStart({ kind: 'lesson', lessons: [open] })}>Üben</button>
-        </header>
+        <PageHeader
+          leading={<GlassButton icon="chevronLeft" label="Lektionen" text="Lektionen" onClick={() => { setOpen(null); window.scrollTo({ top: 0 }); }} />}
+          title={`Lektion ${open}`}
+          subtitle={<>Buch S. {L.pages} · {L.words.length} Lernwörter · betonter Vokal <span class="stress">markiert</span></>}
+          trailing={<button class="primary" onClick={() => onStart({ kind: 'lesson', lessons: [open] })}>Üben</button>}
+        />
         <div class="panel">
-          <p class="muted small">Buch S. {L.pages} · {L.words.length} Lernwörter · Betonter Vokal ist <span class="stress">markiert</span></p>
           <div class="wordlist">
             {L.words.map((w) => (
               <div class="wrow" key={w.id}>
@@ -44,18 +46,18 @@ export function Vocab({ onStart }: { onStart: (s: TrainerStart) => void }) {
                 <div class="w-de">
                   {germanDisplay(w)}
                   {w.info && <span class="muted"> ({w.info})</span>}
-                  {w.hint && <div class="hint">🔗 {w.hint}</div>}
+                  {w.hint && <div class="hint"><Icon name="link" size={15} /> {w.hint}</div>}
                 </div>
                 <div class="w-lv" title="Latein→Deutsch / Deutsch→Latein">
-                  <LevelDots level={app.progress[cardKey(w.id, 'ld')]?.level ?? 0} />
-                  <LevelDots level={app.progress[cardKey(w.id, 'dl')]?.level ?? 0} />
+                  <span><span class="dir-label">LA→DE</span><LevelDots level={app.progress[cardKey(w.id, 'ld')]?.level ?? 0} /></span>
+                  <span><span class="dir-label">DE→LA</span><LevelDots level={app.progress[cardKey(w.id, 'dl')]?.level ?? 0} /></span>
                 </div>
               </div>
             ))}
           </div>
           {reviewWords.length > 0 && (
             <>
-              <h3>Wiederholungswörter</h3>
+              <h2 class="group-header" style={{ marginTop: '26px' }}>Wiederholungswörter</h2>
               <div class="wordlist compact">
                 {reviewWords.map((w) => (
                   <div class="wrow" key={w.id}>
@@ -75,17 +77,16 @@ export function Vocab({ onStart }: { onStart: (s: TrainerStart) => void }) {
   const toggle = (n: number) => setSel(sel.includes(n) ? sel.filter((x) => x !== n) : [...sel, n].sort((a, b) => a - b));
   return (
     <div class="screen">
-      <header class="bar"><span /><h1>Vokabeln</h1><span /></header>
+      <PageHeader title="Vokabeln" subtitle="Tippe auf eine Lektion, um die Wörter zu sehen. Mit ○ wählst du mehrere Lektionen zum gemeinsamen Üben." />
       <div class="panel">
-        <p class="muted small">Tippe auf eine Lektion, um die Wörter zu sehen. Mit ☐ kannst du mehrere Lektionen zusammen üben.</p>
         <div class="lesson-grid">
           {app.lessons.map((l) => {
             const levels = l.words.map((w) => wordLevel(app.progress, w));
             const mastered = levels.filter((x) => x >= MAX_LEVEL).length;
             const locked = l.number > app.settings.currentLesson;
             return (
-              <div class={'lesson-card' + (locked ? ' locked' : '')} key={l.number}>
-                <button class="lc-main" onClick={() => setOpen(l.number)}>
+              <div class={'lesson-card' + (locked ? ' locked' : '') + (sel.includes(l.number) ? ' selected' : '')} key={l.number}>
+                <button class="lc-main" onClick={() => { setOpen(l.number); window.scrollTo({ top: 0 }); }}>
                   <span class="lc-num">{l.number}</span>
                   <span class="lc-info">
                     <span>{l.words.length} Wörter</span>
@@ -94,13 +95,13 @@ export function Vocab({ onStart }: { onStart: (s: TrainerStart) => void }) {
                 </button>
                 <LevelBar levels={levels} />
                 <button class={'lc-check' + (sel.includes(l.number) ? ' on' : '')} aria-label="Auswählen" onClick={() => toggle(l.number)}>
-                  {sel.includes(l.number) ? '☑' : '☐'}
+                  <span class="check-circle">{sel.includes(l.number) && <Icon name="check" size={16} weight={3} />}</span>
                 </button>
               </div>
             );
           })}
         </div>
-        <div class="legend small">
+        <div class="legend">
           <span><i class="lv lv0" /> neu/aussortiert</span><span><i class="lv lv1" /> 1</span><span><i class="lv lv2" /> 2</span>
           <span><i class="lv lv3" /> 3</span><span><i class="lv lv4" /> 4</span><span><i class="lv lv5" /> sicher (5 Wiederholungen)</span>
         </div>

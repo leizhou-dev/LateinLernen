@@ -8,14 +8,15 @@ import { Forms } from './Forms';
 import { Grammar } from './Grammar';
 import { ProgressView } from './ProgressView';
 import { Trainer, type TrainerStart } from './Trainer';
+import { Icon, type IconName } from './Icons';
 
 type Tab = 'home' | 'vocab' | 'forms' | 'grammar' | 'progress';
-const TABS: [Tab, string, string][] = [
-  ['home', '🏛️', 'Heute'],
-  ['vocab', '📚', 'Vokabeln'],
-  ['forms', '🛠️', 'Formen'],
-  ['grammar', '📜', 'Grammatik'],
-  ['progress', '📈', 'Fortschritt'],
+const TABS: [Tab, IconName, string][] = [
+  ['home', 'house', 'Heute'],
+  ['vocab', 'books', 'Vokabeln'],
+  ['forms', 'table', 'Formen'],
+  ['grammar', 'scroll', 'Grammatik'],
+  ['progress', 'chart', 'Fortschritt'],
 ];
 
 export function App({ updateReady, applyUpdate }: { updateReady: boolean; applyUpdate: () => void }) {
@@ -41,21 +42,22 @@ export function App({ updateReady, applyUpdate }: { updateReady: boolean; applyU
   if (app.status === 'loading') return <div class="loading"><span class="la">Salvē …</span></div>;
   if (app.status === 'locked' || app.status === 'error') return <Unlock />;
 
-  if (trainer) return <Trainer start={trainer} onClose={() => setTrainer(null)} />;
+  if (trainer) return <Trainer start={trainer} onClose={() => { setTrainer(null); window.scrollTo({ top: 0 }); }} />;
 
   return (
     <div class="shell">
       <main>
-        {tab === 'home' && <Home onStart={setTrainer} onTab={(t) => setTab(t as Tab)} />}
-        {tab === 'vocab' && <Vocab onStart={setTrainer} />}
+        {tab === 'home' && <Home onStart={(s) => { setTrainer(s); window.scrollTo({ top: 0 }); }} onTab={(t) => setTab(t as Tab)} />}
+        {tab === 'vocab' && <Vocab onStart={(s) => { setTrainer(s); window.scrollTo({ top: 0 }); }} />}
         {tab === 'forms' && <Forms />}
         {tab === 'grammar' && <Grammar />}
-        {tab === 'progress' && <ProgressView onStart={setTrainer} />}
+        {tab === 'progress' && <ProgressView onStart={(s) => { setTrainer(s); window.scrollTo({ top: 0 }); }} />}
       </main>
-      <nav class="tabbar">
+      <nav class="tabbar" aria-label="Bereiche">
         {TABS.map(([t, icon, label]) => (
-          <button key={t} class={t === tab ? 'on' : ''} onClick={() => setTab(t)}>
-            <span class="tab-icon">{icon}</span>
+          <button key={t} class={'tab' + (t === tab ? ' on' : '')} aria-current={t === tab ? 'page' : undefined}
+            onClick={() => { setTab(t); window.scrollTo({ top: 0 }); }}>
+            <Icon name={icon} weight={t === tab ? 2.1 : 1.7} />
             <span class="tab-label">{label}</span>
           </button>
         ))}

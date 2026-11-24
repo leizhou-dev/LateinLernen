@@ -10,15 +10,17 @@ import { shuffle, nfc } from '../lib/text';
 import { LatinInput, MacronBar } from './LatinInput';
 import { LatinText } from './Latin';
 import { latinDisplay } from '../lib/check';
+import { PageHeader, NavBar, GlassButton } from './Chrome';
+import { Icon, IconTile, type IconName } from './Icons';
 
 type Exercise = 'build' | 'identify' | 'table-noun' | 'table-verb';
 const ROUNDS = 10;
 
-const EX_INFO: Record<Exercise, { title: string; desc: string; icon: string }> = {
-  build: { title: 'Form bilden', desc: 'z. B. „Bilde den Dativ Plural von amīcus“', icon: '🛠️' },
-  identify: { title: 'Form bestimmen', desc: 'Welcher Kasus / welche Person ist das? Oft gibt es mehrere Lösungen!', icon: '🔍' },
-  'table-noun': { title: 'Deklinationstabelle', desc: 'Alle Kasus eines Substantivs ausfüllen', icon: '📋' },
-  'table-verb': { title: 'Konjugationstabelle', desc: 'Alle Personen eines Verbs ausfüllen', icon: '📋' },
+const EX_INFO: Record<Exercise, { title: string; desc: string; icon: IconName; color: string }> = {
+  build: { title: 'Form bilden', desc: 'z. B. „Bilde den Dativ Plural von amīcus“', icon: 'wrench', color: 'var(--orange)' },
+  identify: { title: 'Form bestimmen', desc: 'Welcher Kasus / welche Person ist das? Oft gibt es mehrere Lösungen!', icon: 'magnifier', color: 'var(--purple)' },
+  'table-noun': { title: 'Deklinationstabelle', desc: 'Alle Kasus eines Substantivs ausfüllen', icon: 'table', color: 'var(--teal)' },
+  'table-verb': { title: 'Konjugationstabelle', desc: 'Alle Personen eines Verbs ausfüllen', icon: 'table', color: 'var(--blue)' },
 };
 
 const pick = <T,>(a: T[]): T => a[Math.floor(Math.random() * a.length)];
@@ -26,23 +28,26 @@ const pick = <T,>(a: T[]): T => a[Math.floor(Math.random() * a.length)];
 export function Forms() {
   const [ex, setEx] = useState<Exercise | null>(null);
   const { settings } = useApp();
-  if (ex) return <FormSession ex={ex} onClose={() => setEx(null)} />;
+  if (ex) return <FormSession ex={ex} onClose={() => { setEx(null); window.scrollTo({ top: 0 }); }} />;
   const lesson = settings.currentLesson;
   return (
     <div class="screen">
-      <header class="bar"><span /><h1>Formen üben</h1><span /></header>
+      <PageHeader title="Formen üben" subtitle={`Geübt wird alles bis Lektion ${lesson}`} />
       <div class="panel">
-        <p class="muted">Geübt wird alles bis Lektion {lesson}: Kasus {unlockedCases(lesson).map((c) => CASE_LABEL[c]).join(', ')}
-          {lesson >= 2 ? ` · Verbformen: ${unlockedVerbKeys(lesson).map((k) => VERB_SHORT[k]).join(', ')}` : ''}.</p>
         <div class="tiles-grid">
           {(Object.keys(EX_INFO) as Exercise[]).map((e) => (
-            <button key={e} class="big-tile" onClick={() => setEx(e)} disabled={e === 'table-verb' && lesson < 2}>
-              <span class="bt-icon">{EX_INFO[e].icon}</span>
+            <button key={e} class="big-tile" onClick={() => { setEx(e); window.scrollTo({ top: 0 }); }} disabled={e === 'table-verb' && lesson < 2}>
+              <IconTile name={EX_INFO[e].icon} color={EX_INFO[e].color} size={44} />
               <span class="bt-title">{EX_INFO[e].title}</span>
               <span class="bt-desc">{EX_INFO[e].desc}</span>
             </button>
           ))}
         </div>
+        <p class="group-footer" style={{ marginTop: '14px' }}>
+          Kasus: {unlockedCases(lesson).map((c) => CASE_LABEL[c]).join(', ')}
+          {lesson >= 2 ? ` · Verbformen: ${unlockedVerbKeys(lesson).map((k) => VERB_SHORT[k]).join(', ')}` : ''}.
+          Die Lektion stellst du unter „Fortschritt“ ein.
+        </p>
       </div>
     </div>
   );
@@ -131,8 +136,8 @@ function FormSession({ ex, onClose }: { ex: Exercise; onClose: () => void }) {
   if (round >= ROUNDS) {
     return (
       <div class="screen">
-        <header class="bar"><span /><h1>{EX_INFO[ex].title}</h1><span /></header>
-        <div class="panel center">
+        <NavBar center={EX_INFO[ex].title} />
+        <div class="result">
           <div class="big-emoji">{score === ROUNDS ? '🏆' : score >= 7 ? '🌟' : '💪'}</div>
           <h2>{score} von {ROUNDS} richtig</h2>
           <div class="two">
@@ -171,18 +176,18 @@ function FormSession({ ex, onClose }: { ex: Exercise; onClose: () => void }) {
   const w = task.word;
   return (
     <div class="screen quiz">
-      <header class="bar">
-        <button class="link" onClick={onClose}>✕ Beenden</button>
-        <div class="progress-track"><div class="progress-fill" style={{ width: `${(round / ROUNDS) * 100}%` }} /></div>
-        <span class="muted small">{round + 1} / {ROUNDS}</span>
-      </header>
+      <NavBar
+        leading={<GlassButton icon="xmark" label="Beenden" onClick={onClose} />}
+        center={<div class="progress-track"><div class="progress-fill" style={{ width: `${(round / ROUNDS) * 100}%` }} /></div>}
+        trailing={<span class="counter">{round + 1} / {ROUNDS}</span>}
+      />
       <div class="panel quiz-panel">
         {task.kind === 'build' && (
           <>
             <div class="question">
               <div class="q-prompt">Bilde: <b>{task.label}</b></div>
               <div class="q-latin"><LatinText text={latinDisplay(w)} /></div>
-              <div class="muted">{w.german.slice(0, 2).join(', ')}</div>
+              <div class="q-sub">{w.german.slice(0, 2).join(', ')}</div>
             </div>
             {task.options ? (
               <div class="choices la-choices">
@@ -207,7 +212,7 @@ function FormSession({ ex, onClose }: { ex: Exercise; onClose: () => void }) {
             <div class="question">
               <div class="q-prompt">Bestimme die Form – <b>alle</b> passenden Möglichkeiten antippen:</div>
               <div class="q-latin"><span class="la">{task.form}</span></div>
-              <div class="muted">von <span class="la">{latinDisplay(w)}</span> ({w.german[0]})</div>
+              <div class="q-sub">von <span class="la">{latinDisplay(w)}</span> ({w.german[0]})</div>
             </div>
             <div class={'id-grid' + (task.isNoun ? ' noun' : '')}>
               {task.options.map(([k, l]) => {
@@ -229,7 +234,7 @@ function FormSession({ ex, onClose }: { ex: Exercise; onClose: () => void }) {
             <div class="question">
               <div class="q-prompt">Fülle die Tabelle aus:</div>
               <div class="q-latin"><LatinText text={latinDisplay(w)} /></div>
-              <div class="muted">{w.german.slice(0, 2).join(', ')}</div>
+              <div class="q-sub">{w.german.slice(0, 2).join(', ')}</div>
             </div>
             <form class="table-form" onSubmit={(e) => { e.preventDefault(); checked ? next() : check(); }}>
               {task.cells.map((c) => (
@@ -255,7 +260,8 @@ function FormSession({ ex, onClose }: { ex: Exercise; onClose: () => void }) {
         {checked && (
           <div class={'feedback ' + (checked.ok ? 'ok' : checked.macron ? 'almost' : 'no')}>
             <div class="fb-title">
-              {checked.ok ? '✓ Richtig!' : checked.macron ? '△ Fast! Achte auf die Längenzeichen.' : '✗ Nicht ganz'}
+              <Icon name={checked.ok ? 'checkCircle' : checked.macron ? 'triangle' : 'xmark'} size={24} weight={2.2} />
+              {checked.ok ? 'Richtig!' : checked.macron ? 'Fast! Achte auf die Längenzeichen.' : 'Nicht ganz'}
             </div>
             {task.kind === 'build' && !checked.ok && <div class="solution"><div class="sol-latin"><LatinText text={task.answer} /></div></div>}
             {task.kind === 'identify' && (
@@ -264,7 +270,7 @@ function FormSession({ ex, onClose }: { ex: Exercise; onClose: () => void }) {
                 {task.answers.length > 1 && <div class="muted small">Diese Form ist mehrdeutig – im Satz entscheidet der Zusammenhang.</div>}
               </div>
             )}
-            <div class="fb-actions"><button class="primary big" autoFocus onClick={next}>Weiter →</button></div>
+            <div class="fb-actions"><button class="primary big" autoFocus onClick={next}>Weiter <Icon name="chevronRight" size={18} weight={2.4} /></button></div>
           </div>
         )}
       </div>

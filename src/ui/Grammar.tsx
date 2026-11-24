@@ -3,6 +3,8 @@ import { useApp } from '../lib/store';
 import { GRAMMAR } from '../lib/grammarContent';
 import { NounTableView, VerbTableView } from './Tables';
 import { CASE_FROM } from '../lib/forms';
+import { PageHeader } from './Chrome';
+import { Icon } from './Icons';
 
 const ROLE_CLASS: Record<string, string> = {
   Subjekt: 'r-subj', Prädikat: 'r-pred', Objekt: 'r-obj', Akkusativobjekt: 'r-obj', Dativobjekt: 'r-dat',
@@ -18,14 +20,13 @@ export function Grammar() {
 
   return (
     <div class="screen">
-      <header class="bar"><span /><h1>Grammatik</h1><span /></header>
-      <div class="lesson-tabs">
+      <PageHeader title="Grammatik" subtitle={`Lektion ${open}`} />
+      <div class="lesson-tabs" role="tablist">
         {GRAMMAR.map((g) => (
-          <button key={g.lesson} class={g.lesson === open ? 'on' : ''} onClick={() => setOpen(g.lesson)}>{g.lesson}</button>
+          <button key={g.lesson} role="tab" aria-selected={g.lesson === open} class={g.lesson === open ? 'on' : ''} onClick={() => setOpen(g.lesson)}>{g.lesson}</button>
         ))}
       </div>
       <div class="panel">
-        <h2>Lektion {open}</h2>
         {L.blocks.map((b) => (
           <section class="gblock" key={b.title}>
             <h3>{b.title}</h3>
@@ -67,8 +68,8 @@ export function Grammar() {
             ))}
           </section>
         )}
-        {L.tip && <p class="tip">💡 {L.tip}</p>}
-        {open === 1 && <p class="muted small">Kasus kommen nacheinander dazu: Akkusativ (L{CASE_FROM.Akk}), Dativ (L{CASE_FROM.Dat}), Genitiv (L{CASE_FROM.Gen}), Ablativ (L{CASE_FROM.Abl}).</p>}
+        {L.tip && <div class="tip"><Icon name="bulb" /> <span>{L.tip}</span></div>}
+        {open === 1 && <p class="group-footer">Kasus kommen nacheinander dazu: Akkusativ (L{CASE_FROM.Akk}), Dativ (L{CASE_FROM.Dat}), Genitiv (L{CASE_FROM.Gen}), Ablativ (L{CASE_FROM.Abl}).</p>}
       </div>
     </div>
   );

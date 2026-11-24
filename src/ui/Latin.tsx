@@ -1,6 +1,7 @@
 import { stressSegments } from '../lib/stress';
 import { speakLatin, canSpeak } from '../lib/speech';
 import { useApp } from '../lib/store';
+import { Icon } from './Icons';
 
 /** Lateinischer Text, betonter Vokal markiert (wenn eingeschaltet) */
 export function LatinText({ text, stress }: { text: string; stress?: boolean }) {
@@ -23,7 +24,7 @@ export function SpeakButton({ text }: { text: string }) {
       aria-label="Vorlesen"
       onClick={(e) => { e.stopPropagation(); speakLatin(text); }}
     >
-      🔊
+      <Icon name="speaker" size={20} weight={2} />
     </button>
   );
 }
