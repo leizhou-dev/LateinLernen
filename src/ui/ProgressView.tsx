@@ -4,7 +4,6 @@ import {
 } from '../lib/store';
 import { cardKey, isProblem, wordLevel, MAX_LEVEL, isSeen } from '../lib/srs';
 import { latinDisplay, germanDisplay } from '../lib/check';
-import { countDue } from '../lib/session';
 import type { AnswerMode } from '../lib/types';
 import { LatinText } from './Latin';
 import { LevelBar } from './Vocab';
@@ -21,7 +20,6 @@ export function ProgressView({ onStart }: { onStart: (s: TrainerStart) => void }
   const levels = words.map((w) => wordLevel(app.progress, w));
   const seen = words.filter((w) => isSeen(app.progress[cardKey(w.id, 'ld')]) || isSeen(app.progress[cardKey(w.id, 'dl')])).length;
   const mastered = levels.filter((l) => l >= MAX_LEVEL).length;
-  const due = countDue(words, app.progress, Date.now());
   const problems = words
     .flatMap((w) => (['ld', 'dl'] as const).map((d) => ({ w, d, p: app.progress[cardKey(w.id, d)] })))
     .filter((x) => isProblem(x.p))
@@ -71,7 +69,7 @@ export function ProgressView({ onStart }: { onStart: (s: TrainerStart) => void }
         <div class="stat"><span class="stat-n"><Icon name="flame" size={24} weight={2} />{streak(stats)}</span><span>Tage in Folge</span></div>
         <div class="stat"><span class="stat-n">{seen}<span class="muted" style={{ fontSize: '17px' }}>/{words.length}</span></span><span>Wörter geübt</span></div>
         <div class="stat"><span class="stat-n">{mastered}</span><span>Wörter sicher</span></div>
-        <div class="stat"><span class="stat-n">{due}</span><span>heute fällig</span></div>
+        <div class="stat"><span class="stat-n"><Icon name="star" size={24} weight={2} class="star-ico" />{stats.stars ?? 0}</span><span>Sterne</span></div>
       </div>
 
       <Group header="Die letzten 14 Tage">

@@ -3,6 +3,7 @@ import { countDue, countNew, countProblems } from '../lib/session';
 import type { TrainerStart } from './Trainer';
 import { PageHeader } from './Chrome';
 import { Icon, IconTile } from './Icons';
+import { StarPill } from './Latin';
 
 export function Home({ onStart, onTab }: { onStart: (s: TrainerStart) => void; onTab: (t: string) => void }) {
   const app = useApp();
@@ -25,8 +26,11 @@ export function Home({ onStart, onTab }: { onStart: (s: TrainerStart) => void; o
         titleClass="la"
         subtitle={date}
         trailing={
-          <span class="streak-pill" title="Tage in Folge geübt">
-            <Icon name="flame" size={20} weight={2} /> {st} {st === 1 ? 'Tag' : 'Tage'}
+          <span class="pills">
+            <StarPill n={app.stats.stars ?? 0} />
+            <span class="streak-pill" title="Tage in Folge geübt">
+              <Icon name="flame" size={20} weight={2} /> {st} {st === 1 ? 'Tag' : 'Tage'}
+            </span>
           </span>
         }
       />

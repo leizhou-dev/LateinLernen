@@ -13,6 +13,8 @@ export interface Stats {
   days: Record<string, number>;
   formsRight: number;
   formsWrong: number;
+  /** Sterne: +1 pro richtiger Antwort, +3 Bonus für eine fehlerfreie Runde (wie in „Artikel lernen“) */
+  stars?: number;
 }
 
 interface KeyInfo { raw: number[]; salt: string; iter: number }
@@ -168,16 +170,29 @@ function bumpDay(s: Stats): Stats {
   return { ...s, days: { ...s.days, [k]: (s.days[k] ?? 0) + 1 } };
 }
 
+export const STAR_PER_ANSWER = 1;
+export const STAR_BONUS_ROUND = 3;
+
+function withStars(s: Stats, n: number): Stats {
+  return n ? { ...s, stars: (s.stars ?? 0) + n } : s;
+}
+
 export function recordAnswer(wordId: string, dir: Direction, correct: boolean) {
   const k = cardKey(wordId, dir);
   const progress = { ...state.progress, [k]: review(state.progress[k], correct, Date.now()) };
-  update({ progress, stats: bumpDay(state.stats) });
+  update({ progress, stats: withStars(bumpDay(state.stats), correct ? STAR_PER_ANSWER : 0) });
   saveSoon();
 }
 
 export function recordForm(correct: boolean) {
-  const s = bumpDay(state.stats);
+  const s = withStars(bumpDay(state.stats), correct ? STAR_PER_ANSWER : 0);
   update({ stats: { ...s, formsRight: s.formsRight + (correct ? 1 : 0), formsWrong: s.formsWrong + (correct ? 0 : 1) } });
+  saveSoon();
+}
+
+/** Bonus für eine fehlerfreie Runde */
+export function addStars(n: number) {
+  update({ stats: withStars(state.stats, n) });
   saveSoon();
 }
 

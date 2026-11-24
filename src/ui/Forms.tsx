@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'preact/hooks';
+import { useEffect, useMemo, useState } from 'preact/hooks';
 import type { Word } from '../lib/types';
-import { useApp, recordForm } from '../lib/store';
+import { useApp, recordForm, addStars, STAR_BONUS_ROUND } from '../lib/store';
 import {
   canDecline, canConjugate, declineNoun, conjugate, unlockedCases, unlockedVerbKeys, identifyNoun, identifyVerb,
   CASE_LABEL, NUM_LABEL, VERB_LABEL, VERB_SHORT, CASE_FROM, type Case, type Num, type VerbKey,
@@ -8,7 +8,7 @@ import {
 import { checkLatin, macronVariant } from '../lib/check';
 import { shuffle, nfc } from '../lib/text';
 import { LatinInput, MacronBar } from './LatinInput';
-import { LatinText } from './Latin';
+import { LatinText, StarPill, StarGain } from './Latin';
 import { latinDisplay } from '../lib/check';
 import { PageHeader, NavBar, GlassButton } from './Chrome';
 import { Icon, IconTile, type IconName } from './Icons';
@@ -130,6 +130,11 @@ function FormSession({ ex, onClose }: { ex: Exercise; onClose: () => void }) {
   const [cellInputs, setCellInputs] = useState<Record<string, string>>({});
   const [selected, setSelected] = useState<string[]>([]);
   const [checked, setChecked] = useState<null | { ok: boolean; macron?: boolean; cellOk?: Record<string, boolean> }>(null);
+  const [bonusRound, setBonusRound] = useState(-1);
+  // Bonus für 10 von 10 – genau einmal pro Runde
+  useEffect(() => {
+    if (round >= ROUNDS && score === ROUNDS && bonusRound !== seed) { addStars(STAR_BONUS_ROUND); setBonusRound(seed); }
+  }, [round]);
 
   if (!task) return <div class="panel">Keine passenden Wörter.</div>;
 
@@ -140,6 +145,12 @@ function FormSession({ ex, onClose }: { ex: Exercise; onClose: () => void }) {
         <div class="result">
           <div class="big-emoji">{score === ROUNDS ? '🏆' : score >= 7 ? '🌟' : '💪'}</div>
           <h2>{score} von {ROUNDS} richtig</h2>
+          {score > 0 && (
+            <div class="stars-earned">
+              <StarGain n={score + (score === ROUNDS ? STAR_BONUS_ROUND : 0)} />
+              <span>{score === ROUNDS ? `Sterne – davon ${STAR_BONUS_ROUND} Bonussterne!` : 'Sterne in dieser Runde'}</span>
+            </div>
+          )}
           <div class="two">
             <button class="secondary big" onClick={onClose}>Fertig</button>
             <button class="primary big" onClick={() => { setRound(0); setScore(0); setSeed(seed + 1); }}>Noch eine Runde</button>
@@ -179,7 +190,7 @@ function FormSession({ ex, onClose }: { ex: Exercise; onClose: () => void }) {
       <NavBar
         leading={<GlassButton icon="xmark" label="Beenden" onClick={onClose} />}
         center={<div class="progress-track"><div class="progress-fill" style={{ width: `${(round / ROUNDS) * 100}%` }} /></div>}
-        trailing={<span class="counter">{round + 1} / {ROUNDS}</span>}
+        trailing={<><StarPill n={score} title="Sterne in dieser Runde" /><span class="counter">{round + 1} / {ROUNDS}</span></>}
       />
       <div class="panel quiz-panel">
         {task.kind === 'build' && (
@@ -262,6 +273,7 @@ function FormSession({ ex, onClose }: { ex: Exercise; onClose: () => void }) {
             <div class="fb-title">
               <Icon name={checked.ok ? 'checkCircle' : checked.macron ? 'triangle' : 'xmark'} size={24} weight={2.2} />
               {checked.ok ? 'Richtig!' : checked.macron ? 'Fast! Achte auf die Längenzeichen.' : 'Nicht ganz'}
+              {checked.ok && <StarGain n={1} />}
             </div>
             {task.kind === 'build' && !checked.ok && <div class="solution"><div class="sol-latin"><LatinText text={task.answer} /></div></div>}
             {task.kind === 'identify' && (

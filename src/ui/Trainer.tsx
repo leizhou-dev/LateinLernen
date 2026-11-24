@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'preact/hooks';
+import { useEffect, useMemo, useState } from 'preact/hooks';
 import type { AnswerMode, Direction } from '../lib/types';
-import { useApp, recordAnswer, setSettings } from '../lib/store';
+import { useApp, recordAnswer, setSettings, addStars, STAR_BONUS_ROUND } from '../lib/store';
 import { buildSession, choicesFor, type Card, type SessionKind } from '../lib/session';
 import {
   checkGerman, checkLatinParts, germanDisplay, latinDisplay, latinTargets, worst, type Verdict,
@@ -8,7 +8,7 @@ import {
 import { stripMacrons, nfc } from '../lib/text';
 import { speakLatin } from '../lib/speech';
 import { LatinInput, MacronBar } from './LatinInput';
-import { LatinText, SpeakButton } from './Latin';
+import { LatinText, SpeakButton, StarPill, StarGain } from './Latin';
 import { NavBar, GlassButton, Group, PageHeader } from './Chrome';
 import { Icon, type IconName } from './Icons';
 
@@ -118,6 +118,18 @@ function Quiz({ cards, title, mode, onClose }: { cards: Card[]; title: string; m
   const [flipped, setFlipped] = useState(false);
   const [firstTry] = useState(() => new Map<string, boolean>());
   const [repeats] = useState(() => new Map<string, number>());
+  const [bonusGiven, setBonusGiven] = useState(false);
+
+  const firstTotal = firstTry.size;
+  const firstRight = [...firstTry.values()].filter(Boolean).length;
+  const finished = !queue[idx];
+  // Bonus für eine fehlerfreie Runde – genau einmal
+  useEffect(() => {
+    if (finished && !bonusGiven && firstTotal > 0 && firstRight === firstTotal) {
+      addStars(STAR_BONUS_ROUND);
+      setBonusGiven(true);
+    }
+  }, [finished]);
 
   const card = queue[idx];
   const key = card ? `${card.word.id}:${card.dir}` : '';
@@ -134,6 +146,12 @@ function Quiz({ cards, title, mode, onClose }: { cards: Card[]; title: string; m
           <div class="big-emoji">{right === total ? '🏆' : right >= total * 0.7 ? '🌟' : '💪'}</div>
           <h2>{right === total ? 'Optimē! Alles richtig!' : right >= total * 0.7 ? 'Bene! Gut gemacht!' : 'Weiter so – Übung macht den Meister!'}</h2>
           <p class="score">{right} von {total} beim ersten Versuch richtig</p>
+          {right > 0 && (
+            <div class="stars-earned">
+              <StarGain n={right + (right === total ? STAR_BONUS_ROUND : 0)} />
+              <span>{right === total ? `Sterne – davon ${STAR_BONUS_ROUND} Bonussterne für eine fehlerfreie Runde!` : 'Sterne in dieser Runde'}</span>
+            </div>
+          )}
           {wrongCards.length > 0 && (
             <Group header="Diese Wörter kommen bald wieder">
               {wrongCards.map((c) => (
@@ -207,7 +225,7 @@ function Quiz({ cards, title, mode, onClose }: { cards: Card[]; title: string; m
       <NavBar
         leading={<GlassButton icon="xmark" label="Beenden" onClick={onClose} />}
         center={<div class="progress-track"><div class="progress-fill" style={{ width: `${(done / queue.length) * 100}%` }} /></div>}
-        trailing={<span class="counter">{done + 1} / {queue.length}</span>}
+        trailing={<><StarPill n={[...firstTry.values()].filter(Boolean).length} title="Sterne in dieser Runde" /><span class="counter">{done + 1} / {queue.length}</span></>}
       />
 
       <div class="panel quiz-panel">
@@ -317,6 +335,7 @@ function Quiz({ cards, title, mode, onClose }: { cards: Card[]; title: string; m
                 : result.verdict === 'typo' ? 'Richtig – kleiner Tippfehler'
                 : result.verdict === 'macron' ? 'Fast! Achte auf die Längenzeichen.'
                 : 'Leider falsch'}
+              {ok && !firstTry.has(key) && <StarGain n={1} />}
             </div>
             {result.verdict === 'macron' && mode !== 'choice' && result.given && (
               <div class="macron-diff">
